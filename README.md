@@ -32,7 +32,7 @@ The module is type annotated.
 
 ### Usage
 
-You can look at [examples](/examples) for a general idea on how to use or the use case of AIEngine
+You can look at the [examples](/Examples) for a general idea on how to use or the use case of AIEngine
 
 ### License
 
