@@ -5,6 +5,7 @@
 	author: Sythivo
 --]=]
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService");
 
 local AIEngine = require(ServerScriptService:WaitForChild("AIEngine"));
@@ -14,11 +15,11 @@ return function(AI : AIEngine.AI, RoamPoints : {Vector3})
 		error("[Horror AI Preset] RoamPoints must have at least 2 points");
 		return;
 	end
-	local Mechanism : AIEngine.Mechanism = AIEngine.createMechanism();
+	local Mechanism: AIEngine.Mechanism = AIEngine.createMechanism();
 	
 	Mechanism.Name = "Roam";
 
-	Mechanism.OnLoaded:Once(function()
+	Mechanism.OnLoaded:Once(function(...: any)
 		local RoamIndex = 1;
 		Mechanism:WhileState(1, function()
 			local CurrentRoamPoint = RoamPoints[RoamIndex];

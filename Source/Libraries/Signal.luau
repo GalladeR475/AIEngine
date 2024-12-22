@@ -9,7 +9,7 @@
 local Connection = {};
 Connection.__index = Connection;
 
-function Connection.new(callback : (...any) -> ...any)
+function Connection.new(callback: (...any) -> ...any)
 	return setmetatable({
 		Connected = true;
 		Callback = callback;
@@ -25,29 +25,33 @@ table.freeze(Connection);
 export type Connection = typeof(Connection.new(function() end));
 
 export type SignalPrototype<T...> = {
-	__index : SignalPrototype<T...>;
-	Fire : (self : Signal<T...>, T...) -> ();
-	Wait : (self : Signal<T...>) -> T...;
-	Once : (self : Signal<T...>, func: (T...) -> ()) -> Connection;
-	Connect : (self : Signal<T...>, func: (T...) -> ()) -> Connection;
-	ConnectParallel : (self : Signal<T...>, func: (T...) -> ()) -> Connection;
+	__index: SignalPrototype<T...>;
+	Fire: (self: Signal<T...>, T...) -> ();
+	Wait: (self: Signal<T...>) -> T...;
+	Once: (self: Signal<T...>, func: (T...) -> ()) -> Connection;
+	Connect: (self: Signal<T...>, func: (T...) -> ()) -> Connection;
+	ConnectParallel: (self: Signal<T...>, func: (T...) -> ()) -> Connection;
 }
 
 export type Signal<T... = ()> = typeof(
 	setmetatable(
-		{destroyed=(nil::any)::boolean; connections={}::{Connection}; parallel_connections={}::{Connection}},
-		{}::SignalPrototype<T...>
+		{} :: {
+			destroyed: boolean;
+			connections: { Connection };
+			parallel_connections: { Connection }
+		},
+		{} :: SignalPrototype<T...>
 	)
 );
 
 local Signal = {};
 Signal.__index = Signal;
 
-function Signal.new<T...>() : Signal<T...>
+function Signal.new<T...>(): Signal<T...>
 	return setmetatable({
 		destroyed = false;
-		connections = {}::{Connection};
-		parallel_connections = {}::{Connection};
+		connections = {} :: { Connection };
+		parallel_connections = {} :: { Connection };
 	}, Signal);
 end
 
@@ -73,7 +77,7 @@ function Signal:ConnectParallel<T...>(func: (T...) -> ())
 	return connection;
 end
 
-function Signal:Fire<T...>(...) : ()
+function Signal:Fire<T...>(...): ()
 	if (self.destroyed) then
 		error("[Signal] Cannot call signal while destroyed", 2);
 	end
@@ -106,7 +110,7 @@ function Signal:Fire<T...>(...) : ()
 	end
 end
 
-function Signal:Wait<T...>() : T...
+function Signal:Wait<T...>(): T...
 	local thread = coroutine.running();
 	self:Once(function(...)
 		coroutine.resume(thread, ...);
@@ -114,9 +118,9 @@ function Signal:Wait<T...>() : T...
 	return coroutine.yield();
 end
 
-function Signal:Once<T...>(func: (T...) -> ()) : Connection
+function Signal:Once<T...>(func: (T...) -> ()): Connection
 	local connection;
-	connection = self:Connect(function(... : T...)
+	connection = self:Connect(function(...: T...)
 		if (connection and connection.Connected) then
 			connection:Disconnect();
 		end
@@ -125,7 +129,7 @@ function Signal:Once<T...>(func: (T...) -> ()) : Connection
 	return connection;
 end
 
-function Signal:Clone<T...>() : Signal<T...>
+function Signal:Clone<T...>(): Signal<T...>
 	if (self.destroyed) then
 		error("[Signal] Cannot clone signal while destroyed", 2);
 	end

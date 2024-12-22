@@ -15,9 +15,9 @@ local debug = {};
 debug.prototype = {};
 debug.prototype.__index = debug.prototype;
 
-local New = function(class : string) : (Properties : any) -> Instance
+local New = function(class: string): (Properties: any) -> Instance
 	local object = Instance.new(class);
-	return function(Properties : any)
+	return function(Properties: any)
 		if (type(Properties) ~= "table") then
 			return object;
 		end;
@@ -48,7 +48,7 @@ local CreateVisualPart = function()
 	};
 end
 
-local CreatePointVisualizer = function(Color : Color3, Text : string?)
+local CreatePointVisualizer = function(Color: Color3, Text: string?)
 	local StartAttachment = New "Attachment" {};
 	local EndAttachment = New "Attachment" {
 		Position = Vector3.new(0, 9, 0);
@@ -98,21 +98,21 @@ function debug.new()
 end
 
 type Point = {
-	Visualizer : {
-		StartAttachment : Attachment?;
-		EndAttachment : Attachment?;
-		Beam : Beam?;
+	Visualizer: {
+		StartAttachment: Attachment?;
+		EndAttachment: Attachment?;
+		Beam: Beam?;
 	};
-	element : Part;
-	InMemory : (self : Point) -> Point;
-	SetParent : (self : Point, parent : Instance) -> Point;
-	SetVisualizer : (self : Point, Color : Color3, Text : string?) -> Point;
-	SetPosition : (self : Point, Vector : Vector3) -> Point;
-	DestroyVisualizer : (self : Point) -> Point;
-	Destroy : (self : Point) -> ();
+	element: Part;
+	InMemory: (self: Point) -> Point;
+	SetParent: (self: Point, parent: Instance) -> Point;
+	SetVisualizer: (self: Point, Color: Color3, Text: string?) -> Point;
+	SetPosition: (self: Point, Vector: Vector3) -> Point;
+	DestroyVisualizer: (self: Point) -> Point;
+	Destroy: (self: Point) -> ();
 }
 
-function debug.prototype:RenderPoint(Vector : Vector3, Color : Color3, Text : string?) : Point
+function debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: string?): Point
 	local debugger = self;
 	local Point = ({});
 	
@@ -129,7 +129,7 @@ function debug.prototype:RenderPoint(Vector : Vector3, Color : Color3, Text : st
 		return self;
 	end
 
-	function Point:SetParent(parent : Instance)
+	function Point:SetParent(parent: Instance)
 		self.element.Parent = parent;
 		return self;
 	end
@@ -145,7 +145,7 @@ function debug.prototype:RenderPoint(Vector : Vector3, Color : Color3, Text : st
 		return self;
 	end
 
-	function Point:SetVisualizer(Color : Color3, Text : string?)
+	function Point:SetVisualizer(Color: Color3, Text: string?)
 		self:DestroyVisualizer();
 
 		if (Text) then

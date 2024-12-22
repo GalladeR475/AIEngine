@@ -3,14 +3,18 @@
 	  AI Engine for Roblox
 
 	author: Sythivo
+	fork: GalladeR475
 --]=]
 
-type AgentParamaters = {
-	AgentRadius : number?;
-	AgentHeight : number?;
-	AgentCanJump : boolean?;
-	Costs : {
-		[string] : number;
+type AgentParameters = {
+	AgentRadius: number?;
+	AgentHeight: number?;
+	AgentCanJump: boolean?;
+	Costs: {
+		[string]: number;
+	}?;
+	PathSettings: {
+		SupportPartialPath: boolean?;
 	}?;
 };
 
@@ -28,75 +32,76 @@ local Debug = require(Modules:WaitForChild("debug"));
 export type Signal<T... = ()> = Signal.Signal<T...>;
 
 type Shared = {
-	createSignal : () -> Signal;
+	createSignal: () -> Signal;
 };
 
 type Referenced = {
-	__ref : AI;
+	__ref: AI;
 };
 
 export type State = { [string]: any } & {
-	value : number | string;
-	changed : boolean;
+	value: number | string;
+	changed: boolean;
 };
 
 export type Mechanism = Referenced & Shared & {
-	Name : string?;
+	Name: string?;
 
-	OnLoaded : Signal;
+	OnLoaded: Signal;
+	Unloaded: Signal;
 
-	OnState : (self : Mechanism, State : number | string, Callback : (state : State) -> ()) -> Signal.Connection;
-	WhileState : (self : Mechanism, State : number | string, Callback : (state : State) -> ()) -> Signal.Connection;
+	OnState: (self: Mechanism, State: number | string, Callback: (state: State) -> ()) -> Signal.Connection;
+	WhileState: (self: Mechanism, State: number | string, Callback: (state: State) -> ()) -> Signal.Connection;
 };
 
 export type AI = Shared & {
-	Debug : typeof(Debug.new());
-	Mechanisms : {Mechanism};
-	Character : Model;
-	PathAgentParams : AgentParamaters?;
-	PathAgent : Path;
-	State : State;
+	Debug: typeof(Debug.new());
+	Mechanisms: {Mechanism};
+	Character: Model;
+	PathAgentParams: AgentParameters?;
+	PathAgent: Path;
+	State: State;
 
-	OnHeartBeat : Signal<number>;
-	OnStateChange : Signal<State>;
-	OnFallingLimit : Signal<>;
-	Destroyed : Signal<>;
+	OnHeartBeat: Signal<number>;
+	OnStateChange: Signal<State>;
+	OnFallingLimit: Signal<>;
+	Destroyed: Signal<>;
 
-	Heatbeat : RBXScriptConnection;
+	Heatbeat: RBXScriptConnection;
 
-	EmitState : (self : AI, State : State | number | string) -> ();
-	createMechanism : () -> Mechanism;
-	LoadMechanism : (self : AI, Mechanism : Mechanism) -> ();
+	EmitState: (self: AI, State: State | number | string) -> ();
+	createMechanism: () -> Mechanism;
+	LoadMechanism: (self: AI, Mechanism: Mechanism) -> ();
 
-	Physical : Phyiscal;
-	Movement : Movement;
+	Physical: Physical;
+	Movement: Movement;
 };
-type Phyiscal = Referenced & {
-	GetHumanoidRoot : (self : Phyiscal) -> (Humanoid?, BasePart?);
-	OnTouched : (self : Phyiscal, callback : (part : BasePart) -> (), onlyChild : boolean?) -> {RBXScriptConnection};
+type Physical = Referenced & {
+	GetHumanoidRoot: (self: Physical) -> (Humanoid?, BasePart?);
+	OnTouched: (self: Physical, callback: (part: BasePart) -> (), onlyChild: boolean?) -> {RBXScriptConnection};
 };
 type Movement = Referenced & {
-	MovingSpeed : number;
+	MovingSpeed: number;
 	
-	MoveTo : (self : Movement, Position : Vector3) -> RBXScriptSignal;
-	IsStuck : (self : Movement) -> boolean;
-	IsMoving : (self : Movement) -> boolean;
-	CancelMoveTo : (self : Movement) -> ();
-	SetWalkSpeed : (self : Movement, Speed : number) -> ();
-	ComputePathAsync : (self : Movement, Position : Vector3) -> (number, {PathWaypoint});
-	CyclicLoopAsync : (self : Movement, state : State | number | string, vectors : {Vector3}, iteration : (number, Vector3) -> number) -> ();
+	MoveTo: (self: Movement, Position: Vector3) -> RBXScriptSignal;
+	IsStuck: (self: Movement) -> boolean;
+	IsMoving: (self: Movement) -> boolean;
+	CancelMoveTo: (self: Movement) -> ();
+	SetWalkSpeed: (self: Movement, Speed: number) -> ();
+	ComputePathAsync: (self: Movement, Position: Vector3) -> (number, {PathWaypoint});
+	CyclicLoopAsync: (self: Movement, state: State | number | string, vectors: {Vector3}, iteration: (number, Vector3) -> number) -> ();
 };
 
-local GeometricXZPlane = Vector3.new(1,0,1);
-local ToXZPlane = function(vector : Vector3) : Vector3
+local GeometricXZPlane = Vector3.new(1, 0, 1);
+local ToXZPlane = function(vector: Vector3): Vector3
 	return (GeometricXZPlane * vector);
 end
 
-local FloorResolution = function(num : number, resolution : number) : number
+local FloorResolution = function(num: number, resolution: number): number
 	return math.floor(num*resolution)/resolution;
 end
 
-local function IsLiteral(value : any) : boolean
+local function IsLiteral(value: any): boolean
 	return (typeof(value) == "number" or typeof(value) == "string");
 end
 
@@ -136,7 +141,7 @@ AIEngine.mechanics_prototype.__index = AIEngine.mechanics_prototype;
 	@param character The character to control
 	@param agent The pathfinding agent
 ]]
-function AIEngine.new(character : Model, agent : AgentParamaters?) : AI
+function AIEngine.new(character: Model, agent: AgentParameters?): AI
 	local self = setmetatable({
 		Isolated = ({}); --// Isolated variables, public
 		Debug = Debug.new(); --// Debugging
@@ -179,16 +184,22 @@ function AIEngine.new(character : Model, agent : AgentParamaters?) : AI
 	return self;
 end
 
-type newState = (value : number | string, changed : boolean?) -> State;
-AIEngine.newState = function(value : number | string, changed : boolean?)
+type newState = 
+	& ((value: number | string) -> State) 
+	& ((value: number | string, changed: boolean?) -> State);
+
+AIEngine.newState = function(value: number | string, changed: boolean?)
 	return ({
 		value = value;
 		changed = changed;
 	});
-end::newState;
+end :: newState;
 
-type WaypointToVector = ((waypoints : PathWaypoint) -> Vector3) & ((waypoints : {PathWaypoint}) -> {Vector3});
-AIEngine.WaypointToVector = function(waypoints : PathWaypoint | {PathWaypoint})
+type WaypointToVector = 
+	& ((waypoints: PathWaypoint) -> Vector3)
+	& ((waypoints: { PathWaypoint }) -> { Vector3 });
+
+AIEngine.WaypointToVector = function(waypoints: PathWaypoint | { PathWaypoint })
 	if (type(waypoints) == "table") then
 		local vectors = table.create(#waypoints);
 		for _, waypoint in waypoints do
@@ -198,14 +209,15 @@ AIEngine.WaypointToVector = function(waypoints : PathWaypoint | {PathWaypoint})
 	else
 		return waypoints.Position;
 	end
-end::WaypointToVector;
+end :: WaypointToVector;
 
 --[[
 	Creates a new mechanism
 ]]
-function AIEngine.createMechanism() : Mechanism
+function AIEngine.createMechanism(): Mechanism
 	local self = setmetatable({
 		OnLoaded = Signal.new();
+		Unloaded = Signal.new();
 	}, AIEngine.mechanics_prototype);
 
 	return self;
@@ -216,7 +228,7 @@ AIEngine.mechanics_prototype.createSignal = Signal.new;
 
 --// AI Methods
 
-function AIEngine.prototype:LoadMechanism(Mechanism : Mechanism)
+function AIEngine.prototype:LoadMechanism(Mechanism: Mechanism)
 	if (table.find(self.Mechanisms, Mechanism)) then
 		warn("[AIEngine] Mechanism already loaded");
 		return;
@@ -230,7 +242,21 @@ function AIEngine.prototype:LoadMechanism(Mechanism : Mechanism)
 	Mechanism.OnLoaded:Fire();
 end
 
-function AIEngine.prototype:EmitState(state : State | number | string)
+function AIEngine.prototype:UnloadMechanism(Mechanism: Mechanism)
+	local index = table.find(self.Mechanisms, Mechanism);
+	if (not index) then
+		warn("[AIEngine] Mechanism already loaded");
+		return;
+	end
+	if (FFlag.EngineDebuggingLevel >= 2) then
+		local name = Mechanism.Name or "Unnamed";
+		print("[AIEngine] Unloading Mechanism:", name);
+	end
+	table.remove(self.Mechanisms, index);
+	Mechanism.Unloaded:Fire();
+end
+
+function AIEngine.prototype:EmitState(state: State | number | string)
 	if (FFlag.EngineDebuggingLevel >= 3) then
 		print("[AI] State Emitted", state);
 	end
@@ -244,7 +270,7 @@ function AIEngine.prototype:EmitState(state : State | number | string)
 	self.OnStateChange:Fire(state);
 end
 
---[[Physical]] do
+--[[ Physical ]] do
 	local Physical = ({
 		__init = function(self)
 			local AI = self.__ref::AI;
@@ -278,7 +304,7 @@ end
 		return;
 	end
 
-	function Physical:OnTouched(callback : (part : BasePart) -> (), onlyChild : boolean?)
+	function Physical:OnTouched(callback: (part: BasePart) -> (), onlyChild: boolean?)
 		local AI = self.__ref::AI;
 		local connections = {};
 		local Character = AI.Character;
@@ -299,13 +325,13 @@ end
 	AIEngine.prototype.Physical = Physical;
 end
 
---[[Movement]] do
+--[[ Movement ]] do
 	local Movement = ({
 		__init = function(self)
 			local AI = self.__ref::AI;
 			local Humanoid = AI.Physical:GetHumanoidRoot();
 			if (Humanoid) then
-				self.Running = Humanoid.Running:Connect(function(speed : number)
+				self.Running = Humanoid.Running:Connect(function(speed: number)
 					self.MovingSpeed = speed;
 				end)
 			end
@@ -313,7 +339,7 @@ end
 		end
 	});
 
-	function Movement:MoveTo(vector : Vector3) : RBXScriptSignal?
+	function Movement:MoveTo(vector: Vector3): RBXScriptSignal?
 		local AI = self.__ref::AI;
 
 		if (FFlag.EngineDebuggingLevel >= 4) then
@@ -358,7 +384,7 @@ end
 		return false
 	end
 
-	function Movement:CyclicLoopAsync(state : State | number | string, vectors : {Vector3}, iteration : (number, Vector3) -> number, lifeWait : number?)
+	function Movement:CyclicLoopAsync(state: State | number | string, vectors: {Vector3}, iteration: (number, Vector3) -> number, lifeWait: number?)
 		if (#vectors == 0) then
 			return;
 		end
@@ -398,7 +424,7 @@ end
 		local CompletedReason = 0;
 		local startedTime = time() + (lifeWait or 4);
 
-		local HeartbeatConnection : RBXScriptConnection;
+		local HeartbeatConnection: RBXScriptConnection;
 		HeartbeatConnection = AI.OnHeartBeat:Connect(function()
 			if (self:IsStuck()) then
 				if (startedTime <= time()) then
@@ -414,7 +440,7 @@ end
 			end
 		end);
 
-		for i, vector : Vector3 in vectors do
+		for i, vector: Vector3 in vectors do
 			if (CompletedReason ~= 0) then
 				break;
 			end
@@ -462,7 +488,7 @@ end
 		return CompletedReason;
 	end
 	
-	function Movement:SetWalkSpeed(speed : number)
+	function Movement:SetWalkSpeed(speed: number)
 		local AI = self.__ref::AI;
 
 		local Humanoid = AI.Physical:GetHumanoidRoot();
@@ -471,7 +497,7 @@ end
 		end
 	end
 	
-	function Movement:ComputePathAsync(vector : Vector3)
+	function Movement:ComputePathAsync(vector: Vector3)
 		local AI = self.__ref::AI;
 
 		local svector = AI.Character:GetPivot().Position;
@@ -484,7 +510,7 @@ end
 
 --// Mechanism Methods
 
-function AIEngine.mechanics_prototype:WhileState(State : number | string, Callback : (state : State) -> ())
+function AIEngine.mechanics_prototype:WhileState(State: number | string, Callback: (state: State) -> ())
 	local AI = self.__ref::AI;
 	local Active = false;
 	local Update = function()
@@ -507,9 +533,9 @@ function AIEngine.mechanics_prototype:WhileState(State : number | string, Callba
 	return AI.OnStateChange:Connect(Update);
 end
 
-function AIEngine.mechanics_prototype:OnState(State : number | string, Callback : (state : State) -> ())
+function AIEngine.mechanics_prototype:OnState(State: number | string, Callback: (state: State) -> ())
 	local AI = self.__ref::AI;
-	return AI.OnStateChange:Connect(function(state : State)
+	return AI.OnStateChange:Connect(function(state: State)
 		if (state.value == State) then
 			Callback(state);
 		end

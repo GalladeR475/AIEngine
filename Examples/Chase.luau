@@ -11,18 +11,18 @@ local ServerScriptService = game:GetService("ServerScriptService");
 local AIEngine = require(ServerScriptService:WaitForChild("AIEngine"));
 
 type Solvers = {
-	Scanner : (AI : Model, Players : {Player}) -> Player?;
-	Validate : (AI : Model, Player : Player) -> boolean?;
-	ValidateScan : (AI : Model, Player : Player) -> boolean?;
+	Scanner: (AI: Model, Players: {Player}) -> Player?;
+	Validate: (AI: Model, Player: Player) -> boolean?;
+	ValidateScan: (AI: Model, Player: Player) -> boolean?;
 }
 
 export type ChaseMechanism = AIEngine.Mechanism & {
-	OnChaseStart : AIEngine.Signal<Player>;
-	OnChaseEnded : AIEngine.Signal<Player?>;
+	OnChaseStart: AIEngine.Signal<Player>;
+	OnChaseEnded: AIEngine.Signal<Player?>;
 }
 
-return function(AI : AIEngine.AI & any, PlayerSolvers : Solvers) : ChaseMechanism
-	local Mechanism : AIEngine.Mechanism & any = AIEngine.createMechanism();
+return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
+	local Mechanism: AIEngine.Mechanism & any = AIEngine.createMechanism();
 
 	Mechanism.Name = "Chase";
 	Mechanism.Chasing = false;
@@ -80,7 +80,7 @@ return function(AI : AIEngine.AI & any, PlayerSolvers : Solvers) : ChaseMechanis
 				Debug:Clear();
 				Render = Debug:RenderPoint(Vector3.zero, Color3.fromRGB(255, 98, 98), "CHASE"):InMemory():SetParent(workspace);
 			end
-			local TargetPlayer : Player = AI.TargetPlayer;
+			local TargetPlayer: Player = AI.TargetPlayer;
 			if (not TargetPlayer) then
 				ReturnToNormalState();
 				return;

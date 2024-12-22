@@ -10,13 +10,13 @@ local ServerScriptService = game:GetService("ServerScriptService");
 local AIEngine = require(ServerScriptService:WaitForChild("AIEngine"));
 
 type Solvers = {
-	Scanner : (AI : Model, Players : {Player}) -> Player?;
-	Validate : (AI : Model, Player : Player) -> boolean?;
-	ValidateScan : (AI : Model, Player : Player) -> boolean?;
+	Scanner: (AI: Model, Players: {Player}) -> Player?;
+	Validate: (AI: Model, Player: Player) -> boolean?;
+	ValidateScan: (AI: Model, Player: Player) -> boolean?;
 }
 
-return function(AI : AIEngine.AI & any, PlayerSolvers : Solvers)
-	local Mechanism : AIEngine.Mechanism & any = AIEngine.createMechanism();
+return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers)
+	local Mechanism: AIEngine.Mechanism & any = AIEngine.createMechanism();
 	
 	Mechanism.Name = "Investigate";
 
@@ -27,8 +27,8 @@ return function(AI : AIEngine.AI & any, PlayerSolvers : Solvers)
 			AI:EmitState(1);
 		end
 
-		local Investigate = function(State : AIEngine.State)
-			local TargetPlayer : Player = State.Player;
+		local Investigate = function(State: AIEngine.State)
+			local TargetPlayer: Player = State.Player;
 			if (not TargetPlayer) then
 				ReturnToNormalState();
 				return;
