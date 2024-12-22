@@ -30,6 +30,7 @@ local FFlag = require(Modules:WaitForChild("fflag")).new();
 local Debug = require(Modules:WaitForChild("debug"));
 
 export type Signal<T... = ()> = Signal.Signal<T...>;
+export type Connection = Signal.Connection;
 
 type Shared = {
 	createSignal: () -> Signal;
@@ -48,7 +49,6 @@ export type Mechanism = Referenced & Shared & {
 	Name: string?;
 
 	OnLoaded: Signal;
-	Unloaded: Signal;
 
 	OnState: (self: Mechanism, State: number | string, Callback: (state: State) -> ()) -> Signal.Connection;
 	WhileState: (self: Mechanism, State: number | string, Callback: (state: State) -> ()) -> Signal.Connection;
@@ -136,11 +136,12 @@ end
 AIEngine.mechanics_prototype = ({});
 AIEngine.mechanics_prototype.__index = AIEngine.mechanics_prototype;
 
---[[
+--[=[
 	Creates a new AI Engine
+	
 	@param character The character to control
 	@param agent The pathfinding agent
-]]
+]=]
 function AIEngine.new(character: Model, agent: AgentParameters?): AI
 	local self = setmetatable({
 		Isolated = ({}); --// Isolated variables, public
@@ -217,7 +218,6 @@ end :: WaypointToVector;
 function AIEngine.createMechanism(): Mechanism
 	local self = setmetatable({
 		OnLoaded = Signal.new();
-		Unloaded = Signal.new();
 	}, AIEngine.mechanics_prototype);
 
 	return self;
@@ -240,20 +240,6 @@ function AIEngine.prototype:LoadMechanism(Mechanism: Mechanism)
 	table.insert(self.Mechanisms, Mechanism);
 	Mechanism.__ref = self;
 	Mechanism.OnLoaded:Fire();
-end
-
-function AIEngine.prototype:UnloadMechanism(Mechanism: Mechanism)
-	local index = table.find(self.Mechanisms, Mechanism);
-	if (not index) then
-		warn("[AIEngine] Mechanism already loaded");
-		return;
-	end
-	if (FFlag.EngineDebuggingLevel >= 2) then
-		local name = Mechanism.Name or "Unnamed";
-		print("[AIEngine] Unloading Mechanism:", name);
-	end
-	table.remove(self.Mechanisms, index);
-	Mechanism.Unloaded:Fire();
 end
 
 function AIEngine.prototype:EmitState(state: State | number | string)
