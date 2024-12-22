@@ -67,7 +67,7 @@ export type AI = Shared & {
 	OnFallingLimit: Signal<>;
 	Destroyed: Signal<>;
 
-	Heatbeat: RBXScriptConnection;
+	Heartbeat: RBXScriptConnection;
 
 	EmitState: (self: AI, State: State | number | string) -> ();
 	createMechanism: () -> Mechanism;
@@ -165,7 +165,7 @@ function AIEngine.new(character: Model, agent: AgentParameters?): AI
 
 	self.State = AIEngine.newState(-1, true); --// State of the AI, default: Unknown(-1)
 
-	self.Heatbeat = RunService.Heartbeat:Connect(function(Step)
+	self.Heartbeat = RunService.Heartbeat:Connect(function(Step)
 		self.OnHeartBeat:Fire(Step);
 	end);
 

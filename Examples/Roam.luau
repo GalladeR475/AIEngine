@@ -5,7 +5,6 @@
 	author: Sythivo
 --]=]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService");
 
 local AIEngine = require(ServerScriptService:WaitForChild("AIEngine"));
