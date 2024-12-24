@@ -166,7 +166,7 @@ function AIEngine.new(character: Model, agent: AgentParameters?): AI
 	self.State = AIEngine.newState(-1, true); --// State of the AI, default: Unknown(-1)
 
 	self.Heartbeat = RunService.Heartbeat:Connect(function(Step)
-		self.OnHeartBeat:Fire(Step);
+		self.OnHeartBeat:Fire();
 	end);
 
 	if (FFlag.EngineDebuggingLevel >= 2) then

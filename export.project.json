@@ -8,5 +8,6 @@
         "Examples": {
             "$path": "Examples"
         }
-    }
+    },
+    "emitLegacyScripts": false
 }

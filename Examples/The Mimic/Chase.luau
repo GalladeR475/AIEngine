@@ -54,9 +54,9 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
 			local Player = PlayerSolvers.Scanner(Character, Players:GetPlayers());
 			if (Player) then
 				if (AI.TargetPlayer ~= Player) then
-					if (AI.TargetPlayer) then
-						Mechanism.OnChaseEnded:Fire(AI.TargetPlayer);
-					end
+					-- if (AI.TargetPlayer) then
+					-- 	Mechanism.OnChaseEnded:Fire(AI.TargetPlayer);
+					-- end
 					Mechanism.Chasing = true;
 					Mechanism.OnChaseStart:Fire(Player);
 				end
