@@ -2,7 +2,7 @@ local ServerScriptService = game:GetService("ServerScriptService");
 
 local AIEngine = require(ServerScriptService:WaitForChild("AIEngine"));
 
-local Examples = ServerScriptService:WaitForChild("Examples");
+local Examples = ServerScriptService:WaitForChild("Examples"):WaitForChild("The Mimic");
 
 local AI = AIEngine.new((script.Parent :: any) :: Model, {
 	AgentHeight = 3;

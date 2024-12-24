@@ -41,8 +41,8 @@ type Referenced = {
 };
 
 export type State = { [string]: any } & {
-	value: number | string;
-	changed: boolean;
+	Value: number | string;
+	Changed: boolean;
 };
 
 export type Mechanism = Referenced & Shared & {
@@ -56,7 +56,7 @@ export type Mechanism = Referenced & Shared & {
 
 export type AI = Shared & {
 	Debug: typeof(Debug.new());
-	Mechanisms: {Mechanism};
+	Mechanisms: { Mechanism };
 	Character: Model;
 	PathAgentParams: AgentParameters?;
 	PathAgent: Path;
@@ -101,8 +101,8 @@ local FloorResolution = function(num: number, resolution: number): number
 	return math.floor(num*resolution)/resolution;
 end
 
-local function IsLiteral(value: any): boolean
-	return (typeof(value) == "number" or typeof(value) == "string");
+local function IsLiteral(Value: any): boolean
+	return (typeof(Value) == "number" or typeof(Value) == "string");
 end
 
 local AIEngine = {};
@@ -118,17 +118,17 @@ AIEngine.FFlags = {
 --// AI Engine Prototype
 AIEngine.prototype = ({});
 function AIEngine.prototype:__index(key)
-	local value = self.Isolated[key];
-	if (value) then
-		return (value);
+	local Value = self.Isolated[key];
+	if (Value) then
+		return (Value);
 	end
 	return rawget(self, key) or rawget(AIEngine.prototype, key);
 end
-function AIEngine.prototype:__newindex(key, value)
+function AIEngine.prototype:__newindex(key, Value)
 	if (key == "State") then
-		self:EmitState(value);
+		self:EmitState(Value);
 	else
-		rawset(self.Isolated, key, value);
+		rawset(self.Isolated, key, Value);
 	end
 end
 
@@ -186,13 +186,13 @@ function AIEngine.new(character: Model, agent: AgentParameters?): AI
 end
 
 type newState = 
-	& ((value: number | string) -> State) 
-	& ((value: number | string, changed: boolean?) -> State);
+	& ((Value: number | string) -> State) 
+	& ((Value: number | string, Changed: boolean?) -> State);
 
-AIEngine.newState = function(value: number | string, changed: boolean?)
+AIEngine.newState = function(Value: number | string, Changed: boolean?)
 	return ({
-		value = value;
-		changed = changed;
+		Value = Value;
+		Changed = Changed;
 	});
 end :: newState;
 
@@ -248,7 +248,7 @@ function AIEngine.prototype:EmitState(state: State | number | string)
 	end
 
 	if (IsLiteral(state)) then
-		local changed = self.State.value ~= state;
+		local changed = self.State.Value ~= state;
 		state = AIEngine.newState(state::(number|string), changed);
 	end
 
@@ -441,7 +441,7 @@ end
 			end
 
 			if (isStateLiteral) then
-				if (AI.State.value ~= state) then
+				if (AI.State.Value ~= state) then
 					CompletedReason = -1;
 					break;
 				end
@@ -500,12 +500,12 @@ function AIEngine.mechanics_prototype:WhileState(State: number | string, Callbac
 	local AI = self.__ref::AI;
 	local Active = false;
 	local Update = function()
-		if (AI.State.value == State and not Active) then
+		if (AI.State.Value == State and not Active) then
 			if (FFlag.EngineDebuggingLevel >= 3) then
 				print("[AI] Entering StateLoop", State);
 			end
 			Active = true;
-			while (AI.State.value == State) do
+			while (AI.State.Value == State) do
 				Callback(AI.State);
 				AI.OnHeartBeat:Wait();
 			end
@@ -522,7 +522,7 @@ end
 function AIEngine.mechanics_prototype:OnState(State: number | string, Callback: (state: State) -> ())
 	local AI = self.__ref::AI;
 	return AI.OnStateChange:Connect(function(state: State)
-		if (state.value == State) then
+		if (state.Value == State) then
 			Callback(state);
 		end
 	end);
