@@ -29,7 +29,7 @@ return function(AI: AIEngine.AI & any, PlayerHearingSolvers: HearingSolvers)
 		local HeardPlayers = {};
 
 		AI.OnHeartBeat:Connect(function()
-			if (AI.State.value ~= 1) then
+			if (AI.State.Value ~= 1) then
 				return;
 			end
 			local CharacterPivot = Character:GetPivot();

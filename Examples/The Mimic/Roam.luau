@@ -27,7 +27,7 @@ return function(AI : AIEngine.AI, RoamPoints : {Vector3})
 				CurrentRoamPoint = RoamPoints[RoamIndex];
 			end
 			local status, Waypoints = AI.Movement:ComputePathAsync(CurrentRoamPoint);
-			if (AI.State.value ~= 1) then
+			if (AI.State.Value ~= 1) then
 				return;
 			end
 			if (status <= 0) then

@@ -66,7 +66,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
 		end)
 
 		AI.OnStateChange:Connect(function(NewState)
-			if (NewState.value == 1) then
+			if (NewState.Value == 1) then
 				AI.TargetPlayer = nil;
 				if (Mechanism.Chasing) then
 					Mechanism.Chasing = false;
@@ -80,7 +80,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
 				Debug:Clear();
 				Render = Debug:RenderPoint(Vector3.zero, Color3.fromRGB(255, 98, 98), "CHASE"):InMemory():SetParent(workspace);
 			end
-			local TargetPlayer: Player = AI.TargetPlayer;
+			local TargetPlayer: Player? = AI.TargetPlayer;
 			if (not TargetPlayer) then
 				ReturnToNormalState();
 				return;
