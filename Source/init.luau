@@ -89,7 +89,7 @@ type Movement = Referenced & {
 	CancelMoveTo: (self: Movement) -> ();
 	SetWalkSpeed: (self: Movement, Speed: number) -> ();
 	ComputePathAsync: (self: Movement, Position: Vector3) -> (number, {PathWaypoint});
-	CyclicLoopAsync: (self: Movement, state: State | number | string, vectors: {Vector3}, iteration: (number, Vector3) -> number) -> ();
+	CyclicLoopAsync: (self: Movement, state: State | number | string, Vectors: {Vector3}, iteration: (number, Vector3) -> number?) -> ();
 };
 
 local GeometricXZPlane = Vector3.new(1, 0, 1);
@@ -117,18 +117,18 @@ AIEngine.FFlags = {
 
 --// AI Engine Prototype
 AIEngine.prototype = ({});
-function AIEngine.prototype:__index(key)
-	local Value = self.Isolated[key];
+function AIEngine.prototype:__index(Key)
+	local Value = self.Isolated[Key];
 	if (Value) then
 		return (Value);
 	end
-	return rawget(self, key) or rawget(AIEngine.prototype, key);
+	return rawget(self, Key) or rawget(AIEngine.prototype, Key);
 end
-function AIEngine.prototype:__newindex(key, Value)
-	if (key == "State") then
+function AIEngine.prototype:__newindex(Key, Value)
+	if (Key == "State") then
 		self:EmitState(Value);
 	else
-		rawset(self.Isolated, key, Value);
+		rawset(self.Isolated, Key, Value);
 	end
 end
 
@@ -142,7 +142,7 @@ AIEngine.mechanics_prototype.__index = AIEngine.mechanics_prototype;
 	@param character The character to control
 	@param agent The pathfinding agent
 ]=]
-function AIEngine.new(character: Model, agent: AgentParameters?): AI
+function AIEngine.new(character: Model, agent: AgentParameters): AI
 	local self = setmetatable({
 		Isolated = ({}); --// Isolated variables, public
 		Debug = Debug.new(); --// Debugging
@@ -166,7 +166,7 @@ function AIEngine.new(character: Model, agent: AgentParameters?): AI
 	self.State = AIEngine.newState(-1, true); --// State of the AI, default: Unknown(-1)
 
 	self.Heartbeat = RunService.Heartbeat:Connect(function(Step)
-		self.OnHeartBeat:Fire();
+		self.OnHeartBeat:Fire(Step);
 	end);
 
 	if (FFlag.EngineDebuggingLevel >= 2) then
@@ -197,18 +197,18 @@ AIEngine.newState = function(Value: number | string, Changed: boolean?)
 end :: newState;
 
 type WaypointToVector = 
-	& ((waypoints: PathWaypoint) -> Vector3)
-	& ((waypoints: { PathWaypoint }) -> { Vector3 });
+	& ((Waypoints: PathWaypoint) -> Vector3)
+	& ((Waypoints: { PathWaypoint }) -> { Vector3 });
 
-AIEngine.WaypointToVector = function(waypoints: PathWaypoint | { PathWaypoint })
-	if (type(waypoints) == "table") then
-		local vectors = table.create(#waypoints);
-		for _, waypoint in waypoints do
-			table.insert(vectors, waypoint.Position);
+AIEngine.WaypointToVector = function(Waypoints: PathWaypoint | { PathWaypoint })
+	if (type(Waypoints) == "table") then
+		local Vectors = table.create(#Waypoints);
+		for _, waypoint in Waypoints do
+			table.insert(Vectors, waypoint.Position);
 		end
-		return vectors;
+		return Vectors;
 	else
-		return waypoints.Position;
+		return Waypoints.Position;
 	end
 end :: WaypointToVector;
 
@@ -259,7 +259,7 @@ end
 --[[ Physical ]] do
 	local Physical = ({
 		__init = function(self)
-			local AI = self.__ref::AI;
+			local AI = self.__ref :: AI;
 			local _, RootPart = self:GetHumanoidRoot();
 			local _, Size = AI.Character:GetBoundingBox();
 			
@@ -276,7 +276,7 @@ end
 	});
 
 	function Physical:GetHumanoidRoot()
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 		local Character = AI.Character;
 		if (Character) then
 			local Humanoid = Character:FindFirstChild("Humanoid");
@@ -291,7 +291,7 @@ end
 	end
 
 	function Physical:OnTouched(callback: (part: BasePart) -> (), onlyChild: boolean?)
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 		local connections = {};
 		local Character = AI.Character;
 		for _, v in onlyChild and Character:GetChildren() or Character:GetDescendants() do
@@ -314,7 +314,7 @@ end
 --[[ Movement ]] do
 	local Movement = ({
 		__init = function(self)
-			local AI = self.__ref::AI;
+			local AI = self.__ref :: AI;
 			local Humanoid = AI.Physical:GetHumanoidRoot();
 			if (Humanoid) then
 				self.Running = Humanoid.Running:Connect(function(speed: number)
@@ -326,7 +326,7 @@ end
 	});
 
 	function Movement:MoveTo(vector: Vector3): RBXScriptSignal?
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 
 		if (FFlag.EngineDebuggingLevel >= 4) then
 			print("[AI] Moving To Vector<WorldSpace>", vector);
@@ -340,7 +340,7 @@ end
 	end
 	
 	function Movement:CancelMoveTo()
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 
 		local Humanoid, RootPart = AI.Physical:GetHumanoidRoot();
 		if (Humanoid) then
@@ -353,7 +353,7 @@ end
 	end
 
 	function Movement:IsStuck()
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 
 		local Humanoid, RootPart = AI.Physical:GetHumanoidRoot();
 		if (Humanoid) then
@@ -370,39 +370,39 @@ end
 		return false
 	end
 
-	function Movement:CyclicLoopAsync(state: State | number | string, vectors: {Vector3}, iteration: (number, Vector3) -> number, lifeWait: number?)
-		if (#vectors == 0) then
+	function Movement:CyclicLoopAsync(state: State | number | string, Vectors: {Vector3}, iteration: (number, Vector3) -> number, lifeWait: number?)
+		if (#Vectors == 0) then
 			return;
 		end
 		
-		local optimizedVectors = table.clone(vectors);
-		for i = #optimizedVectors, 1, -1 do
-			local last = optimizedVectors[i - 1];
-			local vector = optimizedVectors[i];
-			if (last and vector and (vector - last).Magnitude <= 0.2) then
-				table.remove(optimizedVectors, i);
+		local OptimizedVectors = table.clone(Vectors);
+		for Index = #OptimizedVectors, 1, -1 do
+			local Last = OptimizedVectors[Index - 1];
+			local Vector = OptimizedVectors[Index];
+			if (Last and Vector and (Vector - Last).Magnitude <= 0.2) then
+				table.remove(OptimizedVectors, Index);
 			end
 		end
 		
-		vectors = optimizedVectors;
+		Vectors = OptimizedVectors;
 
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 		
 		local Humanoid = AI.Physical:GetHumanoidRoot();
 		
 		local DEBUG = FFlag.EngineDebuggingLevel >= 1;
 		
-		local cyclesize = #vectors;
+		local cyclesize = #Vectors;
 		local DEBUG_RenderParts;
 		if (DEBUG) then
 			local Debug = AI.Debug;
 			Debug:Clear();
 			DEBUG_RenderParts = table.create(cyclesize);
-			Debug:RenderPoint(vectors[1], Color3.fromRGB(98, 255, 98), "START"):InMemory():SetParent(workspace);
+			Debug:RenderPoint(Vectors[1], Color3.fromRGB(98, 255, 98), "START"):InMemory():SetParent(workspace);
 			for i = 2, cyclesize - 1, 1 do
-				DEBUG_RenderParts[i] = Debug:RenderPoint(vectors[i], Color3.fromRGB(50, 127, 131)):InMemory():SetParent(workspace);
+				DEBUG_RenderParts[i] = Debug:RenderPoint(Vectors[i], Color3.fromRGB(50, 127, 131)):InMemory():SetParent(workspace);
 			end
-			Debug:RenderPoint(vectors[cyclesize], Color3.fromRGB(255, 245, 98), "END"):InMemory():SetParent(workspace);
+			Debug:RenderPoint(Vectors[cyclesize], Color3.fromRGB(255, 245, 98), "END"):InMemory():SetParent(workspace);
 		end
 
 		local isStateLiteral = IsLiteral(state);
@@ -426,7 +426,7 @@ end
 			end
 		end);
 
-		for i, vector: Vector3 in vectors do
+		for i, vector: Vector3 in Vectors do
 			if (CompletedReason ~= 0) then
 				break;
 			end
@@ -461,9 +461,9 @@ end
 				end
 			end
 			
-			local movementFinished = self:MoveTo(vector);
-			if (movementFinished) then
-				movementFinished:Wait();
+			local MovementFinished = self:MoveTo(vector);
+			if (MovementFinished) then
+				MovementFinished:Wait();
 			end
 		end
 		
@@ -475,7 +475,7 @@ end
 	end
 	
 	function Movement:SetWalkSpeed(speed: number)
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 
 		local Humanoid = AI.Physical:GetHumanoidRoot();
 		if (Humanoid) then
@@ -484,7 +484,7 @@ end
 	end
 	
 	function Movement:ComputePathAsync(vector: Vector3)
-		local AI = self.__ref::AI;
+		local AI = self.__ref :: AI;
 
 		local svector = AI.Character:GetPivot().Position;
 		AI.PathAgent:ComputeAsync(svector, vector);
@@ -497,7 +497,7 @@ end
 --// Mechanism Methods
 
 function AIEngine.mechanics_prototype:WhileState(State: number | string, Callback: (state: State) -> ())
-	local AI = self.__ref::AI;
+	local AI = self.__ref :: AI;
 	local Active = false;
 	local Update = function()
 		if (AI.State.Value == State and not Active) then
@@ -520,7 +520,7 @@ function AIEngine.mechanics_prototype:WhileState(State: number | string, Callbac
 end
 
 function AIEngine.mechanics_prototype:OnState(State: number | string, Callback: (state: State) -> ())
-	local AI = self.__ref::AI;
+	local AI = self.__ref :: AI;
 	return AI.OnStateChange:Connect(function(state: State)
 		if (state.Value == State) then
 			Callback(state);

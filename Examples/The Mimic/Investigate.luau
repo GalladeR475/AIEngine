@@ -15,6 +15,10 @@ type Solvers = {
 	ValidateScan: (AI: Model, Player: Player) -> boolean?;
 }
 
+type State = AIEngine.State & {
+	Player: Player?
+};
+
 return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers)
 	local Mechanism: AIEngine.Mechanism & any = AIEngine.createMechanism();
 	
@@ -27,8 +31,8 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers)
 			AI:EmitState(1);
 		end
 
-		local Investigate = function(State: AIEngine.State)
-			local TargetPlayer: Player = State.Player;
+		local Investigate = function(State: State)
+			local TargetPlayer: Player? = State.Player;
 			if (not TargetPlayer) then
 				ReturnToNormalState();
 				return;

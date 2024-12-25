@@ -1,4 +1,3 @@
---!strict
 --[=[
 	memory.lua
 	  light-weight collection management and cleaner
@@ -43,8 +42,8 @@ end
 
 local disposalFunction = Memory.DisposeValue;
 
---[[Methods]] do
-	methods.table = function(table: {[any]: any})
+--[[ Methods ]] do
+	methods.table = function(table: { [any]: any })
 		local IDisposable = get_next(table, IDisposable_Keys);
 		if (type(IDisposable) == "function") then
 			IDisposable(table)

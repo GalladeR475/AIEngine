@@ -1,4 +1,3 @@
---!strict
 --[=[
 	Signal
 	  lightweight event module, lua context based, non-instance

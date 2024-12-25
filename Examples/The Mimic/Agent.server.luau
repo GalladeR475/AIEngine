@@ -125,6 +125,7 @@ local ChasingMechanismInstance = ChasingMechanism(AI, PlayerSolvers);
 ChasingMechanismInstance.OnChaseStart:Connect(function(Player)
 	print("[Horror Agent Sample] AI Chasing", Player);
 end);
+
 ChasingMechanismInstance.OnChaseEnded:Connect(function(Player)
 	print("[Horror Agent Sample] AI Not Chasing", Player);
 end);
