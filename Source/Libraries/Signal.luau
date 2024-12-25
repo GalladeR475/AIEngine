@@ -1,144 +1,147 @@
 --[=[
-	Signal
-	  lightweight event module, lua context based, non-instance
+    Signal
+        lightweight signal module
+        adapted from https://github.com/Scythe-Technology/luau-roblox
 
-	author: Sythivo
---]=]
-
-local Connection = {};
-Connection.__index = Connection;
-
-function Connection.new(callback: (...any) -> ...any)
-	return setmetatable({
-		Connected = true;
-		Callback = callback;
-	}, Connection);
-end
-
-function Connection:Disconnect()
-	self.Connected = false;
-end
-
-table.freeze(Connection);
-
-export type Connection = typeof(Connection.new(function() end));
-
-export type SignalPrototype<T...> = {
-	__index: SignalPrototype<T...>;
-	Fire: (self: Signal<T...>, T...) -> ();
-	Wait: (self: Signal<T...>) -> T...;
-	Once: (self: Signal<T...>, func: (T...) -> ()) -> Connection;
-	Connect: (self: Signal<T...>, func: (T...) -> ()) -> Connection;
-	ConnectParallel: (self: Signal<T...>, func: (T...) -> ()) -> Connection;
-}
-
-export type Signal<T... = ()> = typeof(
-	setmetatable(
-		{} :: {
-			destroyed: boolean;
-			connections: { Connection };
-			parallel_connections: { Connection }
-		},
-		{} :: SignalPrototype<T...>
-	)
-);
+    modified: GalladeR475
+]=]
 
 local Signal = {};
 Signal.__index = Signal;
 
-function Signal.new<T...>(): Signal<T...>
-	return setmetatable({
-		destroyed = false;
-		connections = {} :: { Connection };
-		parallel_connections = {} :: { Connection };
-	}, Signal);
+
+type Connection = {
+	Signal: Signal;
+    Next: Connection?,
+    Previous: Connection?,
+    Callback: (...any) -> (),
+    Connected: boolean,
+    Disconnect: (self: Connection) -> (),
+};
+
+export type Signal = typeof(setmetatable(
+    {} :: {
+        Firing: boolean;
+        Processing: boolean;
+        Fire: {{ any }};
+        Queue: { Connection? };
+        Head: Connection?;
+    },
+    {} :: typeof(Signal)
+));
+
+local function Is(Value: any): boolean
+    return (type(Value) == "table" and getmetatable(Value) == Signal);
 end
 
-function Signal:Connect<T...>(func: (T...) -> ())
-	if (self.destroyed) then
-		error("[Signal] Cannot connect signal while destroyed", 2);
-	end
-	local connection = Connection.new(func);
-	
-	table.insert(self.connections, connection);
-
-	return connection;
+function Signal.new(): Signal
+    return setmetatable({
+        Firing = false,
+        Processing = false,
+        Fire = {},
+        Queue = {},
+        Head = nil,
+    }, Signal);
 end
 
-function Signal:ConnectParallel<T...>(func: (T...) -> ())
-	if (self.destroyed) then
-		error("[Signal] Cannot connect signal while destroyed", 2);
-	end
-	local connection = Connection.new(func);
-	
-	table.insert(self.parallel_connections, connection);
+Signal.Is = Is;
 
-	return connection;
+local function Disconnect(Connection: Connection)
+    Connection.Connected = false;
+    Connection.Callback = nil::any;
+    if (Connection.Previous) then
+        Connection.Previous.Next = Connection.Next;
+    end
+    local Signal = Connection.Signal;
+    if (Signal.Head == Connection) then
+        Signal.Head = Connection.Next;
+        return;
+    end
 end
 
-function Signal:Fire<T...>(...): ()
-	if (self.destroyed) then
-		error("[Signal] Cannot call signal while destroyed", 2);
-	end
-	for _, connection in self.parallel_connections do
-		if (connection.Connected) then
-			task.spawn(function(...)
-				task.desynchronize();
-				connection.Callback(...);
-			end, ...)
-		end
-	end
-	for _, connection in self.connections do
-		if (connection.Connected) then
-			task.spawn(connection.Callback, ...);
-		end
-	end
-
-	for i = #self.connections, 1, -1 do
-		local connection = self.connections[i];
-		if (not connection.Connected) then
-			table.remove(self.connections, i);
-		end
-	end
-
-	for i = #self.parallel_connections, 1, -1 do
-		local connection = self.parallel_connections[i];
-		if (not connection.Connected) then
-			table.remove(self.parallel_connections, i);
-		end
-	end
+local function ApplyConnectionToNode(self: Signal, Connection: Connection)
+    local current = self.Head;
+    Connection.Next = current;
+    if (current) then
+        current.Previous = Connection;
+    end
+    self.Head = Connection;
 end
 
-function Signal:Wait<T...>(): T...
-	local thread = coroutine.running();
-	self:Once(function(...)
-		coroutine.resume(thread, ...);
-	end)
-	return coroutine.yield();
+function Signal.Connect(self: Signal, Callback: (...any) -> ()): Connection
+    assert(self.Fire, "Signal is destroyed");
+    local Connection: Connection = {
+        Signal = self,
+        Callback = Callback,
+        Connected = true,
+        Disconnect = Disconnect,
+    };
+    if (self.Firing) then
+        table.insert(self.Queue, Connection);
+        return Connection;
+    end
+    ApplyConnectionToNode(self, Connection);
+    return Connection;
 end
 
-function Signal:Once<T...>(func: (T...) -> ()): Connection
-	local connection;
-	connection = self:Connect(function(...: T...)
-		if (connection and connection.Connected) then
-			connection:Disconnect();
-		end
-		func(...);
-	end)
-	return connection;
+function Signal.Once(self: Signal, Callback: (...any) -> ()): Connection
+    local Connection;
+    Connection = Signal.Connect(self, function(...)
+        Connection:Disconnect();
+        Callback(...);
+    end);
+    return Connection;
 end
 
-function Signal:Clone<T...>(): Signal<T...>
-	if (self.destroyed) then
-		error("[Signal] Cannot clone signal while destroyed", 2);
-	end
-	return Signal.new();
+function Signal.Wait(self: Signal): ...any
+    local Thread = coroutine.running();
+    local Connection;
+    Connection = Signal.Connect(self, function(...)
+        Connection:Disconnect();
+        task.spawn(Thread, ...);
+    end);
+    return coroutine.yield();
 end
 
-function Signal:Destroy()
-	self.destroyed = true;
-	table.clear(self.parallel_connections);
-	table.clear(self.connections);
+local function ProcessFireQueue(self: Signal)
+    if (self.Processing) then
+        return;
+    end
+    self.Processing = true;
+    local Queue = self.Fire;
+    while (#Queue > 0) do
+        self.Firing = true;
+        local Args = table.remove(Queue, 1)::{any};
+        local Current = self.Head;
+        while (Current) do
+            task.spawn(Current.Callback, unpack(Args));
+            Current = Current.Next;
+        end
+        self.Firing = false;
+        for _, Connection in self.Queue do
+            ApplyConnectionToNode(self, Connection);
+        end
+        table.clear(self.Queue);
+    end
+    table.clear(self.Fire);
+    self.Processing = false;
 end
 
-return table.freeze(Signal);
+function Signal.Fire(self: Signal, ...)
+    table.insert(self.Fire, {...});
+    ProcessFireQueue(self);
+end
+
+function Signal.Destroy(self: Signal)
+    local Current = self.Head;
+    while Current do
+        Current:Disconnect();
+        Current = Current.Next;
+    end
+    table.clear(self.Fire);
+    table.clear(self.Queue);
+    self.Head = nil;
+    self.Fire = nil::any;
+end
+
+return Signal;
