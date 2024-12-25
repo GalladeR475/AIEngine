@@ -60,10 +60,10 @@ local function Disconnect(Connection: Connection)
 end
 
 local function ApplyConnectionToNode(self: Signal, Connection: Connection)
-    local current = self.Head;
-    Connection.Next = current;
-    if (current) then
-        current.Previous = Connection;
+    local Current = self.Head;
+    Connection.Next = Current;
+    if (Current) then
+        Current.Previous = Connection;
     end
     self.Head = Connection;
 end
