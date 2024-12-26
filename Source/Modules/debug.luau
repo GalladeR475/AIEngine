@@ -10,28 +10,28 @@ local Libraries = AIEngine:WaitForChild("Libraries");
 
 local Memory = require(Libraries:WaitForChild("Memory"));
 
-local debug = {};
+local Debug = {};
 
-debug.prototype = {};
-debug.prototype.__index = debug.prototype;
+Debug.prototype = {};
+Debug.prototype.__index = Debug.prototype;
 
-local New = function(class: string): (Properties: any) -> Instance
-	local object = Instance.new(class);
+local New = function(Class: string): (Properties: any) -> Instance
+	local Object = Instance.new(Class);
 	return function(Properties: any)
 		if (type(Properties) ~= "table") then
-			return object;
+			return Object;
 		end;
 
-		for i, v in Properties do
-			if (typeof(v) == "Instance" and type(i) == "number") then
-				v.Parent = (object);
+		for Index, Value in Properties do
+			if (typeof(Value) == "Instance" and type(Index) == "number") then
+				Value.Parent = (Object);
 				continue;
 			end
 
-			object[i] = v;
+			Object[Index] = Value;
 		end
 
-		return object;
+		return Object;
 	end;
 end
 
@@ -91,10 +91,10 @@ local CreatePointVisualizer = function(Color: Color3, Text: string?)
 	return StartAttachment, EndAttachment, Beam;
 end
 
-function debug.new()
+function Debug.new()
 	return (setmetatable({
 		Memory = Memory.new();
-	}, debug.prototype));
+	}, Debug.prototype));
 end
 
 type Point = {
@@ -103,7 +103,7 @@ type Point = {
 		EndAttachment: Attachment?;
 		Beam: Beam?;
 	};
-	element: Part;
+	Element: Part;
 	InMemory: (self: Point) -> Point;
 	SetParent: (self: Point, parent: Instance) -> Point;
 	SetVisualizer: (self: Point, Color: Color3, Text: string?) -> Point;
@@ -112,8 +112,8 @@ type Point = {
 	Destroy: (self: Point) -> ();
 }
 
-function debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: string?): Point
-	local debugger = self;
+function Debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: string?): Point
+	local Debugger = self;
 	local Point = ({});
 	
 	Point.Visualizer = {
@@ -122,23 +122,23 @@ function debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: strin
 		Beam = nil;
 	};
 
-	Point.element = CreateVisualPart();
+	Point.Element = CreateVisualPart();
 
 	function Point:InMemory()
-		debugger.Memory:Add(self.element);
+		Debugger.Memory:Add(self.Element);
 		return self;
 	end
 
 	function Point:SetParent(parent: Instance)
-		self.element.Parent = parent;
+		self.Element.Parent = parent;
 		return self;
 	end
 
 	function Point:DestroyVisualizer()
-		for i, v in Point.Visualizer do
-			if (v) then
-				v:Destroy();
-				Point.Visualizer[i] = nil;
+		for Index, Value in Point.Visualizer do
+			if (Value) then
+				Value:Destroy();
+				Point.Visualizer[Index] = nil;
 			end
 		end
 
@@ -151,22 +151,22 @@ function debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: strin
 		if (Text) then
 			local StartAttachment, EndAttachment, Beam = CreatePointVisualizer(Color, Text);
 			Point.Visualizer.StartAttachment = StartAttachment; Point.Visualizer.EndAttachment = EndAttachment; Point.Visualizer.Beam = Beam;
-			StartAttachment.Parent = self.element; EndAttachment.Parent = self.element; Beam.Parent = self.element;
+			StartAttachment.Parent = self.Element; EndAttachment.Parent = self.Element; Beam.Parent = self.Element;
 		end
 
-		self.element.Color = Color;
+		self.Element.Color = Color;
 
 		return self;
 	end
 
 	function Point:SetPosition(Vector)
-		self.element.Position = Vector;
+		self.Element.Position = Vector;
 		return self;
 	end
 
 	function Point:Destroy()
 		self:DestroyVisualizer();
-		self.element:Destroy();
+		self.Element:Destroy();
 	end
 
 	Point:SetVisualizer(Color, Text);
@@ -175,8 +175,8 @@ function debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: strin
 	return Point;
 end
 
-function debug.prototype:Clear()
+function Debug.prototype:Clear()
 	self.Memory:Empty();
 end
 
-return debug;
+return Debug;

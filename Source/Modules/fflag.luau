@@ -6,12 +6,12 @@
 --]=]
 
 type FlagInfo = {
-	name: string;
-	value: any;
-	type: string;
+	Name: string;
+	Value: any;
+	Type: string;
 };
 
-type DEFINE_FLAG = <T>(self: FastFlag, name: string, value: T) -> ();
+type DEFINE_FLAG = <T>(self: FastFlag, Name: string, Value: T) -> ();
 type FastFlag = {
 	Flags: { 
 		[string]: FlagInfo
@@ -23,20 +23,20 @@ type FastFlag = {
 
 local FastFlag = ({});
 
-local createFlagInfo = function(name: string, value: any): FlagInfo
+local CreateFlagInfo = function(Name: string, Value: any): FlagInfo
 	return ({
-		name = name;
-		value = value;
-		type = typeof(value);
+		Name = Name;
+		Value = Value;
+		Type = typeof(Value);
 	});
 end
 
-function FastFlag:__index(key)
-	local flag: FlagInfo? = self.Flags[key];
-	if (flag) then
-		return (flag.value);
+function FastFlag:__index(Key)
+	local Flag: FlagInfo? = self.Flags[Key];
+	if (Flag) then
+		return (Flag.Value);
 	end
-	return rawget(self, key) or rawget(FastFlag, key);
+	return rawget(self, Key) or rawget(FastFlag, Key);
 end
 
 function FastFlag.new(): FastFlag
@@ -47,18 +47,18 @@ function FastFlag.new(): FastFlag
 	return self;
 end
 
-function FastFlag:DEFINE(name: string, value: any)
-	self.Flags[name] = createFlagInfo(name, value);
+function FastFlag:DEFINE(Name: string, Value: any)
+	self.Flags[Name] = CreateFlagInfo(Name, Value);
 end
 
-function FastFlag:SETFASTFLAG(name: string, value: any)
-	return self:DEFINE(name, value);
+function FastFlag:SETFASTFLAG(Name: string, Value: any)
+	return self:DEFINE(Name, Value);
 end
 
 function FastFlag:DUMP(): string
 	local list = ({});
 	for i, v in self.Flags do
-		table.insert(list, ("%s: {default: %s, type: %s}"):format(i, v.value, v.type));
+		table.insert(list, ("%s: {default: %s, type: %s}"):format(i, v.Value, v.type));
 	end
 	return table.concat(list, "\n");
 end

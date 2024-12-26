@@ -97,8 +97,8 @@ local ToXZPlane = function(Vector: Vector3): Vector3
 	return (GeometricXZPlane * Vector);
 end
 
-local FloorResolution = function(num: number, resolution: number): number
-	return math.floor(num*resolution)/resolution;
+local FloorResolution = function(Number: number, Resolution: number): number
+	return math.floor(Number * Resolution) / Resolution;
 end
 
 local function IsLiteral(Value: any): boolean
