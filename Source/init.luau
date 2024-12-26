@@ -26,8 +26,8 @@ local Libraries = script:WaitForChild("Libraries");
 
 local Signal = require(Libraries:WaitForChild("Signal"));
 
-local FFlag = require(Modules:WaitForChild("fflag")).new();
-local Debug = require(Modules:WaitForChild("debug"));
+local FFlag = require(Modules:WaitForChild("FFlag")).new();
+local Debug = require(Modules:WaitForChild("Debug"));
 
 export type Signal = Signal.Signal;
 export type Connection = Signal.Connection;

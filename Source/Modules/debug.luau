@@ -176,7 +176,7 @@ function debug.prototype:RenderPoint(Vector: Vector3, Color: Color3, Text: strin
 end
 
 function debug.prototype:Clear()
-	self.Memory:Dispose();
+	self.Memory:Empty();
 end
 
 return debug;
