@@ -52,6 +52,9 @@ local function Disconnect(Connection: Connection)
     if (Connection.Previous) then
         Connection.Previous.Next = Connection.Next;
     end
+    if (Connection.Next) then
+        Connection.Next.Previous = Connection.Previous;
+    end
     local Signal = Connection.Signal;
     if (Signal.Head == Connection) then
         Signal.Head = Connection.Next;
