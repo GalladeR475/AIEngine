@@ -20,13 +20,13 @@ local Dispose = function(Object: any)
 end
 
 Memory.Methods = ({
-    ["function"] = function(func: () -> ())
-        func();
+    ["function"] = function(Callback: () -> ())
+        Callback();
     end;
-    ["table"] = function(table: {any})
-        for Index, Value in table do
+    ["table"] = function(Table: {any})
+        for Index, Value in Table do
             Dispose(Value);
-            table[Index] = (nil);
+            Table[Index] = (nil);
         end
     end;
     Instance = function(Instance: Instance)
