@@ -34,6 +34,8 @@ local function Is(Value: any): boolean
     return (type(Value) == "table" and getmetatable(Value) == Signal);
 end
 
+Signal.Is = Is;
+
 function Signal.new(): Signal
     return setmetatable({
         Firing = false,
@@ -43,8 +45,6 @@ function Signal.new(): Signal
         Head = nil,
     }, Signal);
 end
-
-Signal.Is = Is;
 
 local function Disconnect(Connection: Connection)
     Connection.Connected = false;
@@ -118,7 +118,7 @@ local function ProcessFireQueue(self: Signal)
             Current = Current.Next;
         end
         self.Firing = false;
-        for _, Connection in self.Queue do
+        for _, Connection in self.ProcessingQueue do
             ApplyConnectionToNode(self, Connection);
         end
         table.clear(self.ProcessingQueue);
@@ -134,7 +134,7 @@ end
 
 function Signal.Destroy(self: Signal)
     local Current = self.Head;
-    while Current do
+    while (Current) do
         Current:Disconnect();
         Current = Current.Next;
     end

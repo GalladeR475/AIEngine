@@ -28,7 +28,7 @@ return function(AI: AIEngine.AI & any, PlayerHearingSolvers: HearingSolvers)
 
 		local HeardPlayers = {};
 
-		AI.OnHeartBeat:Connect(function()
+		AI.OnHeartbeat:Connect(function()
 			if (AI.State.Value ~= 1) then
 				return;
 			end

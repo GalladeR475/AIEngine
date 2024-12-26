@@ -93,8 +93,8 @@ type Movement = Referenced & {
 };
 
 local GeometricXZPlane = Vector3.new(1, 0, 1);
-local ToXZPlane = function(vector: Vector3): Vector3
-	return (GeometricXZPlane * vector);
+local ToXZPlane = function(Vector: Vector3): Vector3
+	return (GeometricXZPlane * Vector);
 end
 
 local FloorResolution = function(num: number, resolution: number): number
@@ -325,15 +325,15 @@ end
 		end
 	});
 
-	function Movement:MoveTo(vector: Vector3): RBXScriptSignal?
+	function Movement:MoveTo(Vector: Vector3): RBXScriptSignal?
 		local AI = self.__ref :: AI;
 
 		if (FFlag.EngineDebuggingLevel >= 4) then
-			print("[AI] Moving To Vector<WorldSpace>", vector);
+			print("[AI] Moving To Vector<WorldSpace>", Vector);
 		end
 		local Humanoid = AI.Physical:GetHumanoidRoot();
 		if (Humanoid) then
-			Humanoid:MoveTo(vector);
+			Humanoid:MoveTo(Vector);
 			return Humanoid.MoveToFinished;
 		end
 		return;
@@ -461,7 +461,7 @@ end
 				end
 			end
 			
-			local MovementFinished = self:MoveTo(vector);
+			local MovementFinished = self:MoveTo(Vector);
 			if (MovementFinished) then
 				MovementFinished:Wait();
 			end
