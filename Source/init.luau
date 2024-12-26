@@ -29,7 +29,7 @@ local Signal = require(Libraries:WaitForChild("Signal"));
 local FFlag = require(Modules:WaitForChild("fflag")).new();
 local Debug = require(Modules:WaitForChild("debug"));
 
-export type Signal<T... = ()> = Signal.Signal<T...>;
+export type Signal = Signal.Signal;
 export type Connection = Signal.Connection;
 
 type Shared = {
@@ -62,8 +62,8 @@ export type AI = Shared & {
 	PathAgent: Path;
 	State: State;
 
-	OnHeartBeat: Signal<number>;
-	OnStateChange: Signal<State>;
+	OnHeartBeat: Signal<>;
+	OnStateChange: Signal<>;
 	OnFallingLimit: Signal<>;
 	Destroyed: Signal<>;
 
