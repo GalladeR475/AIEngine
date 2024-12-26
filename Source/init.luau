@@ -57,12 +57,12 @@ export type Mechanism = Referenced & Shared & {
 export type AI = Shared & {
 	Debug: typeof(Debug.new());
 	Mechanisms: { Mechanism };
-	Character: Model;
-	PathAgentParams: AgentParameters?;
-	PathAgent: Path;
+	Agent: Model;
+	AgentParameters: AgentParameters?;
+	Path: Path;
 	State: State;
 
-	OnHeartBeat: Signal<>;
+	OnHeartbeat: Signal<>;
 	OnStateChange: Signal<>;
 	OnFallingLimit: Signal<>;
 	Destroyed: Signal<>;
@@ -142,20 +142,20 @@ AIEngine.mechanics_prototype.__index = AIEngine.mechanics_prototype;
 	@param character The character to control
 	@param agent The pathfinding agent
 ]=]
-function AIEngine.new(character: Model, agent: AgentParameters): AI
+function AIEngine.new(Agent: Model, AgentParameters: AgentParameters): AI
 	local self = setmetatable({
-		Isolated = ({}); --// Isolated variables, public
-		Debug = Debug.new(); --// Debugging
-		Mechanisms = ({}); --// List of mechanisms
-		Character = character; --// Character
-		PathAgentParams = agent; --// Pathfinding agent parameters
-		PathAgent = PathfindingService:CreatePath(agent); --// Pathfinding agent
+		Isolated = ({});
+		Debug = Debug.new();
+		Mechanisms = ({});
+		Agent = Agent;
+		AgentParameters = AgentParameters;
+		Path = PathfindingService:CreatePath(AgentParameters);
 
-		OnHeartBeat = Signal.new(); --// Heartbeat signal
-		OnStateChange = Signal.new(); --// State change signal
+		OnHeartbeat = Signal.new();
+		OnStateChange = Signal.new();
 		
-		OnFallingLimit = Signal.new(); --// FallingLimit signal
-		Destroyed = Signal.new(); --// FallingLimit signal
+		OnFallingLimit = Signal.new();
+		Destroyed = Signal.new();
 	}, AIEngine.prototype);
 
 	self.Physical = table.clone(self.Physical);
@@ -166,7 +166,7 @@ function AIEngine.new(character: Model, agent: AgentParameters): AI
 	self.State = AIEngine.newState(-1, true); --// State of the AI, default: Unknown(-1)
 
 	self.Heartbeat = RunService.Heartbeat:Connect(function(Step)
-		self.OnHeartBeat:Fire(Step);
+		self.OnHeartbeat:Fire(Step);
 	end);
 
 	if (FFlag.EngineDebuggingLevel >= 2) then
@@ -174,7 +174,7 @@ function AIEngine.new(character: Model, agent: AgentParameters): AI
 		local Humanoid, RootPart = self.Physical:GetHumanoidRoot();
 		if (Humanoid and RootPart) then
 			local WalkingPoint = Debug:RenderPoint(Humanoid.WalkToPoint, Color3.fromRGB(0, 165, 96), "Humanoid Walk Point");
-			self.OnHeartBeat:Connect(function(deltaTime)
+			self.OnHeartbeat:Connect(function(deltaTime)
 				WalkingPoint.element.Position = WalkingPoint.element.Position:Lerp(Humanoid.WalkToPoint, math.clamp(deltaTime/60, 0, 1));
 				WalkingPoint:SetPosition(Humanoid.WalkToPoint);
 			end)
@@ -261,7 +261,7 @@ end
 		__init = function(self)
 			local AI = self.__ref :: AI;
 			local _, RootPart = self:GetHumanoidRoot();
-			local _, Size = AI.Character:GetBoundingBox();
+			local _, Size = AI.Agent:GetBoundingBox();
 			
 			RootPart.Destroying:Once(function()
 				AI.Destroyed:Fire();
@@ -277,9 +277,9 @@ end
 
 	function Physical:GetHumanoidRoot()
 		local AI = self.__ref :: AI;
-		local Character = AI.Character;
-		if (Character) then
-			local Humanoid = Character:FindFirstChild("Humanoid");
+		local Agent = AI.Agent;
+		if (Agent) then
+			local Humanoid = Agent:FindFirstChild("Humanoid");
 			if (Humanoid) then
 				local RootPart = Humanoid.RootPart;
 				if (RootPart) then
@@ -290,22 +290,22 @@ end
 		return;
 	end
 
-	function Physical:OnTouched(callback: (part: BasePart) -> (), onlyChild: boolean?)
+	function Physical:OnTouched(Callback: (part: BasePart) -> (), ChildOnly: boolean?)
 		local AI = self.__ref :: AI;
-		local connections = {};
-		local Character = AI.Character;
-		for _, v in onlyChild and Character:GetChildren() or Character:GetDescendants() do
+		local Connections = {};
+		local Agent = AI.Agent;
+		for _, v in ChildOnly and Agent:GetChildren() or Agent:GetDescendants() do
 			if (v:IsA("BasePart")) then
-				table.insert(connections, v.Touched:Connect(callback));
+				table.insert(Connections, v.Touched:Connect(Callback));
 			end
 		end
-		if (#connections >= 20) then
-			warn(`[AIEngine] You may experience degraded performance, due to high amount of connected touch events: {#connections}`);
-			if (not onlyChild) then
+		if (#Connections >= 20) then
+			warn(`[AIEngine] You may experience degraded performance, due to high amount of connected touch events: {#Connections}`);
+			if (not ChildOnly) then
 				warn(`[AIEngine] Suggestion: Consider using 'onlyChild' parameter or a dedicated Part for touch events`);
 			end
 		end
-		return connections;
+		return Connections;
 	end
 
 	AIEngine.prototype.Physical = Physical;
@@ -317,8 +317,8 @@ end
 			local AI = self.__ref :: AI;
 			local Humanoid = AI.Physical:GetHumanoidRoot();
 			if (Humanoid) then
-				self.Running = Humanoid.Running:Connect(function(speed: number)
-					self.MovingSpeed = speed;
+				self.Running = Humanoid.Running:Connect(function(Speed: number)
+					self.MovingSpeed = Speed;
 				end)
 			end
 			self.MovingSpeed = 0;
@@ -349,7 +349,7 @@ end
 	end
 
 	function Movement:IsMoving()
-		return self.MovingSpeed > 0;
+		return (self.MovingSpeed > 0);
 	end
 
 	function Movement:IsStuck()
@@ -367,10 +367,10 @@ end
 				return true;
 			end
 		end
-		return false
+		return false;
 	end
 
-	function Movement:CyclicLoopAsync(state: State | number | string, Vectors: {Vector3}, iteration: (number, Vector3) -> number, lifeWait: number?)
+	function Movement:CyclicLoopAsync(State: State | number | string, Vectors: {Vector3}, Iteration: (number, Vector3) -> number, LifeTime: number?)
 		if (#Vectors == 0) then
 			return;
 		end
@@ -392,28 +392,28 @@ end
 		
 		local DEBUG = FFlag.EngineDebuggingLevel >= 1;
 		
-		local cyclesize = #Vectors;
+		local CycleSize = #Vectors;
 		local DEBUG_RenderParts;
 		if (DEBUG) then
 			local Debug = AI.Debug;
 			Debug:Clear();
-			DEBUG_RenderParts = table.create(cyclesize);
+			DEBUG_RenderParts = table.create(CycleSize);
 			Debug:RenderPoint(Vectors[1], Color3.fromRGB(98, 255, 98), "START"):InMemory():SetParent(workspace);
-			for i = 2, cyclesize - 1, 1 do
-				DEBUG_RenderParts[i] = Debug:RenderPoint(Vectors[i], Color3.fromRGB(50, 127, 131)):InMemory():SetParent(workspace);
+			for Index = 2, CycleSize - 1, 1 do
+				DEBUG_RenderParts[Index] = Debug:RenderPoint(Vectors[Index], Color3.fromRGB(50, 127, 131)):InMemory():SetParent(workspace);
 			end
-			Debug:RenderPoint(Vectors[cyclesize], Color3.fromRGB(255, 245, 98), "END"):InMemory():SetParent(workspace);
+			Debug:RenderPoint(Vectors[CycleSize], Color3.fromRGB(255, 245, 98), "END"):InMemory():SetParent(workspace);
 		end
 
-		local isStateLiteral = IsLiteral(state);
+		local IsStateLiteral = IsLiteral(State);
 		
 		local CompletedReason = 0;
-		local startedTime = time() + (lifeWait or 4);
+		local StartedTime = time() + (LifeTime or 4);
 
 		local HeartbeatConnection: RBXScriptConnection;
-		HeartbeatConnection = AI.OnHeartBeat:Connect(function()
+		HeartbeatConnection = AI.OnHeartbeat:Connect(function()
 			if (self:IsStuck()) then
-				if (startedTime <= time()) then
+				if (StartedTime <= time()) then
 					HeartbeatConnection:Disconnect();
 					if (FFlag.EngineDebuggingLevel >= 3) then
 						print("[AI] Stuck");
@@ -426,36 +426,36 @@ end
 			end
 		end);
 
-		for i, vector: Vector3 in Vectors do
+		for Index, Vector: Vector3 in Vectors do
 			if (CompletedReason ~= 0) then
 				break;
 			end
-			local action = iteration(i, vector);
-			if (action) then
-				if (action == 1) then
+			local Action = Iteration(Index, Vector);
+			if (Action) then
+				if (Action == 1) then
 					CompletedReason = 2;
 					break;
-				elseif (action == 2) then
+				elseif (Action == 2) then
 					continue;
 				end
 			end
 
-			if (isStateLiteral) then
-				if (AI.State.Value ~= state) then
+			if (IsStateLiteral) then
+				if (AI.State.Value ~= State) then
 					CompletedReason = -1;
 					break;
 				end
-			elseif (AI.State ~= state) then
+			elseif (AI.State ~= State) then
 				CompletedReason = -1;
 				break;
 			end
 
 			if (DEBUG) then
-				local LastRenderPart = DEBUG_RenderParts[i - 1];
+				local LastRenderPart = DEBUG_RenderParts[Index - 1];
 				if (LastRenderPart and not LastRenderPart.Locked) then
 					LastRenderPart:SetVisualizer(Color3.fromRGB(50, 127, 131));
 				end
-				local RenderPart = DEBUG_RenderParts[i];
+				local RenderPart = DEBUG_RenderParts[Index];
 				if (RenderPart) then
 					RenderPart:SetVisualizer(Color3.fromRGB(98, 247, 255), "TARGET");
 				end
@@ -474,21 +474,22 @@ end
 		return CompletedReason;
 	end
 	
-	function Movement:SetWalkSpeed(speed: number)
+	function Movement:SetWalkSpeed(Speed: number)
 		local AI = self.__ref :: AI;
 
 		local Humanoid = AI.Physical:GetHumanoidRoot();
 		if (Humanoid) then
-			Humanoid.WalkSpeed = speed;
+			Humanoid.WalkSpeed = Speed;
 		end
 	end
 	
-	function Movement:ComputePathAsync(vector: Vector3)
+	function Movement:ComputePathAsync(Vector: Vector3)
 		local AI = self.__ref :: AI;
 
-		local svector = AI.Character:GetPivot().Position;
-		AI.PathAgent:ComputeAsync(svector, vector);
-		return AI.PathAgent.Status.Value, AI.PathAgent:GetWaypoints();
+		local StartVector = AI.Agent:GetPivot().Position;
+		AI.Path:ComputeAsync(StartVector, Vector);
+
+		return AI.Path.Status.Value, AI.Path:GetWaypoints();
 	end
 
 	AIEngine.prototype.Movement = Movement;
@@ -507,7 +508,7 @@ function AIEngine.mechanics_prototype:WhileState(State: number | string, Callbac
 			Active = true;
 			while (AI.State.Value == State) do
 				Callback(AI.State);
-				AI.OnHeartBeat:Wait();
+				AI.OnHeartbeat:Wait();
 			end
 			if (FFlag.EngineDebuggingLevel >= 3) then
 				print("[AI] Exitting StateLoop", State);
@@ -521,9 +522,9 @@ end
 
 function AIEngine.mechanics_prototype:OnState(State: number | string, Callback: (state: State) -> ())
 	local AI = self.__ref :: AI;
-	return AI.OnStateChange:Connect(function(state: State)
-		if (state.Value == State) then
-			Callback(state);
+	return AI.OnStateChange:Connect(function(NewState: State)
+		if (NewState.Value == State) then
+			Callback(NewState);
 		end
 	end);
 end

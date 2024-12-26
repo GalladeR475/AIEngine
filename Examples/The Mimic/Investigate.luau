@@ -25,7 +25,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers)
 	Mechanism.Name = "Investigate";
 
 	Mechanism.OnLoaded:Once(function()
-		local Character =  AI.Character;
+		local Agent =  AI.Agent;
 
 		local ReturnToNormalState = function()
 			AI:EmitState(1);
@@ -38,7 +38,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers)
 				return;
 			end
 			local TargetCharacter = TargetPlayer.Character;
-			if (not TargetCharacter or not PlayerSolvers.Validate(Character, TargetPlayer)) then
+			if (not TargetCharacter or not PlayerSolvers.Validate(Agent, TargetPlayer)) then
 				ReturnToNormalState();
 				return;
 			end
@@ -46,7 +46,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers)
 			task.wait(State.Delay or 1);
 			--// Just to make sure the player is still there
 			TargetCharacter = TargetPlayer.Character;
-			if (not TargetCharacter or not PlayerSolvers.Validate(Character, TargetPlayer)) then
+			if (not TargetCharacter or not PlayerSolvers.Validate(Agent, TargetPlayer)) then
 				ReturnToNormalState();
 				return;
 			end

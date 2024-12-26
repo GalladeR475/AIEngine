@@ -24,7 +24,7 @@ return function(AI: AIEngine.AI & any, PlayerHearingSolvers: HearingSolvers)
 	local Debug = AI.Debug;
 
 	Mechanism.OnLoaded:Once(function()
-		local Character =  AI.Character;
+		local Agent =  AI.Agent;
 
 		local HeardPlayers = {};
 
@@ -32,8 +32,8 @@ return function(AI: AIEngine.AI & any, PlayerHearingSolvers: HearingSolvers)
 			if (AI.State.Value ~= 1) then
 				return;
 			end
-			local CharacterPivot = Character:GetPivot();
-			local Players = PlayerHearingSolvers.Scanner(Character, Players:GetPlayers());
+			local CharacterPivot = Agent:GetPivot();
+			local Players = PlayerHearingSolvers.Scanner(Agent, Players:GetPlayers());
 			for i, Player in Players do
 				if ((HeardPlayers[Player] or 0) < time()) then
 					HeardPlayers[Player] = time() + 5; --// Cooldown

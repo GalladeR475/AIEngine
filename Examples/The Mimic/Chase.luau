@@ -17,8 +17,8 @@ type Solvers = {
 }
 
 export type ChaseMechanism = AIEngine.Mechanism & {
-	OnChaseStart: AIEngine.Signal<Player>;
-	OnChaseEnded: AIEngine.Signal<Player?>;
+	OnChaseStart: AIEngine.Signal;
+	OnChaseEnded: AIEngine.Signal;
 }
 
 return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
@@ -33,7 +33,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
 	Mechanism.OnChaseEnded = Mechanism.createSignal();
 
 	Mechanism.OnLoaded:Once(function()
-		local Character =  AI.Character;
+		local Character =  AI.Agent;
 
 		local Render;
 
@@ -50,7 +50,7 @@ return function(AI: AIEngine.AI & any, PlayerSolvers: Solvers): ChaseMechanism
 			Render = nil;
 		end
 
-		AI.OnHeartBeat:Connect(function()
+		AI.OnHeartbeat:Connect(function()
 			local Player = PlayerSolvers.Scanner(Character, Players:GetPlayers());
 			if (Player) then
 				if (AI.TargetPlayer ~= Player) then

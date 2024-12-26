@@ -10,7 +10,7 @@ local AI = AIEngine.new((script.Parent :: any) :: Model, {
 	AgentCanJump = false;
 });
 
-for _, v: Instance in AI.Character:GetDescendants() do
+for _, v: Instance in AI.Agent:GetDescendants() do
 	if (v:IsA("BasePart")) then
 		v:SetNetworkOwner(nil);
 	end
@@ -43,7 +43,7 @@ RoamingPointsDirectory:Destroy();
 
 local RayParams = RaycastParams.new();
 RayParams.FilterType = Enum.RaycastFilterType.Exclude;
-RayParams.FilterDescendantsInstances = ({AI.Character});
+RayParams.FilterDescendantsInstances = ({AI.Agent});
 RayParams.IgnoreWater = true;
 RayParams.RespectCanCollide = true;
 
