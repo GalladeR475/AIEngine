@@ -1,115 +1,67 @@
 --[=[
-	memory.lua
-	  light-weight collection management and cleaner
+	Memory
+		A light-weight janitor module
+		adapted from https://github.com/Sythivo/AIEngine
 
-	author: Sythivo
---]=]
+	author: GalladeR475
+]=]
 
-local IDisposable_Keys = ({ 'Dispose'; 'dispose'; });
+local Memory = ({});
 
-local get_next = function(table: {[string]: any}, keys: {string})
-	for _, key in keys do
-		local value = table[key];
-		if (value) then
-			return value;
-		end
-	end
-	return;
-end;
+local Dispose = function(Object: any)
+    local Method = (Memory.Methods[typeof(Object)]);
 
-local Memory = {};
+    if (Method and type(Method) == "function") then
+        local Success, Error = pcall(Method, Object);
+        if (not Success) then
+            warn(`[Memory] Failed to clean up: {Error}`);
+        end
+    end
+end
+
+Memory.Methods = ({
+    ["function"] = function(func: () -> ())
+        func();
+    end;
+    ["table"] = function(table: {any})
+        for Index, Value in table do
+            Dispose(Value);
+            table[Index] = (nil);
+        end
+    end;
+    Instance = function(Instance: Instance)
+        if (Instance:IsA("Tween")) then
+            Instance:Cancel();
+        end
+        Instance:Destroy();
+    end;
+    RBXScriptConnection = function(RBXScriptConnection: RBXScriptConnection)
+        RBXScriptConnection:Disconnect();
+    end;
+});
+
 Memory.__index = Memory;
 
-local methods = {};
-Memory.methods = methods;
-
 function Memory.new()
-	return setmetatable({
-		collection = {}::{any};
-	}, Memory);
-end
-
-function Memory.DisposeValue(value: any)
-	local method = Memory.methods[typeof(value)];
-
-	if (method and type(method) == "function") then
-		local success, err = pcall(method, value);
-		if (not success) then
-			warn(`[Memory] Failed to CleanUp: {err}`)
-		end
-	end
-end
-
-local disposalFunction = Memory.DisposeValue;
-
---[[ Methods ]] do
-	methods.table = function(table: { [any]: any })
-		local IDisposable = get_next(table, IDisposable_Keys);
-		if (type(IDisposable) == "function") then
-			IDisposable(table)
-			return;
-		end
-
-		for index, value in table do
-			disposalFunction(value);
-			table[index] = nil;
-		end
-	end;
-	methods.Instance = function(Instance: Instance)
-		if (Instance:IsA("Tween")) then
-			Instance:Cancel();
-		end
-		Instance:Destroy();
-	end;
-	methods.RBXScriptConnection = function(RBXScriptConnection: RBXScriptConnection)
-		RBXScriptConnection:Disconnect();
-	end;
+    return setmetatable({
+        Collection = {};
+    }, Memory);
 end
 
 function Memory:Add<T...>(...: T...): T...
-	local pack = table.pack(...)::any;
-	
-	pack.n = nil;
-
-	for _, value in pack do
-		table.insert(self.collection, value);
-	end
-
-	return ...;
+    local Pack = table.pack(...);
+    Pack.n = nil;
+    for _, Value in Pack do
+        table.insert(self.Collection, Value);
+    end
+    return ...;
 end
 
-function Memory:RemoveAt(index: number): ()
-	if (self.collection[index]) then
-		self.collection[index] = nil
-	end
-end
-
-function Memory:GetAt(index: number): any?
-	return self.collection[index];
-end
-
-function Memory:GetIndex(value: any): number
-	for index, v in self.collection do
-		if (v == value) then
-			return index;
-		end
-	end
-	return -1;
-end
-
-function Memory:DisposeAt(index: number?)
-	if (index and self.collection[index]) then
-		disposalFunction(self.collection[index]);
-		table.remove(self.collection, index);
-	end
-end
-
-function Memory:Dispose()
-	for i = #self.collection, 1, -1 do
-		local value = self.collection[i];
-		disposalFunction(value);
-		table.remove(self.collection, i);
-	end
+function Memory:Empty()
+    for Index: number, Value: any in self.Collection do
+        Dispose(Value);
+        self:Remove(Index);
+    end
 end
 
 return Memory;
