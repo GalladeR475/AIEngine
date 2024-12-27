@@ -12,9 +12,9 @@ local Dispose = function(Object: any)
     local Method = (Memory.Methods[typeof(Object)]);
 
     if (Method and type(Method) == "function") then
-        local Success, Error = pcall(Method, Object);
-        if (not Success) then
-            warn(`[Memory] Failed to clean up: {Error}`);
+        local Ok, Err = pcall(Method, Object);
+        if (not Ok) then
+            warn(`[Memory] Failed to clean up: {Err}`);
         end
     end
 end
