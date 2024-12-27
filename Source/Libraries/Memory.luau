@@ -57,17 +57,11 @@ function Memory:Add<T...>(...: T...): T...
     return ...;
 end
 
-function Memory:Remove(Index: number): ()
-	if (self.Collection[Index]) then
-		self.Collection[Index] = nil
-	end
-end
-
 function Memory:Empty()
     for Index: number, Value: any in self.Collection do
         Dispose(Value);
-        self:Remove(Index);
     end
+    table.clear(self.Collection);
 end
 
 return Memory;
